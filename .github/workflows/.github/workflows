@@ -3,7 +3,7 @@ name: Deploy to Hostinger via FTP
 on:
   push:
     branches:
-      - main # Ejecutar solo en la rama principal
+      - staging # Ejecutar solo en la rama principal
 
 jobs:
   deploy:
