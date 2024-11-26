@@ -1,0 +1,32 @@
+name: Deploy to Hostinger via FTP # Nombre del pipeline
+
+on: 
+  push: 
+    branches: 
+      - main # Se ejecuta automáticamente al hacer push en la rama "main"
+
+jobs:
+  deploy:
+    name: Deploy to Hostinger # Nombre del job
+    runs-on: ubuntu-latest # Se ejecuta en un entorno Ubuntu
+
+    steps:
+    # Paso 1: Clonar el repositorio
+    - name: Checkout code 
+      uses: actions/checkout@v3 # Acción para obtener el código fuente del repositorio
+
+    # Paso 2: Instalar cliente FTP (lftp)
+    - name: Install FTP client 
+      run: sudo apt-get update && sudo apt-get install -y lftp # Actualiza paquetes e instala lftp
+
+    # Paso 3: Subir archivos al servidor Hostinger por FTP
+    - name: Deploy files to Hostinger
+      env: # Se configuran las credenciales FTP desde los secrets
+        FTP_HOST: ${{ secrets.FTP_HOST }} # Host del servidor FTP
+        FTP_USERNAME: ${{ secrets.FTP_USERNAME }} # Usuario del servidor FTP
+        FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }} # Contraseña del servidor FTP
+      run: |
+        lftp -c " # Inicia el comando lftp
+        open -u $FTP_USERNAME,$FTP_PASSWORD $FTP_HOST; # Conecta al servidor FTP
+        mirror -R ./ public_html/projectci/ # Sube los archivos del repositorio al servidor
+        "
