@@ -1,0 +1,62 @@
+name: Deploy to Hostinger via FTP
+
+on:
+  push:
+    branches:
+      - staging # Ejecutar solo en la rama principal
+
+jobs:
+  deploy:
+    name: Deploy to Hostinger
+    runs-on: ubuntu-latest
+
+    steps:
+      # Paso 1: Clonar el repositorio
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      # Paso 2: Instalar el cliente FTP (lftp)
+      - name: Install FTP client
+        run: sudo apt-get update && sudo apt-get install -y lftp
+
+      # Paso 3: Probar conexión al servidor FTP
+      - name: Test FTP connection
+        env:
+          FTP_HOST: ${{ secrets.FTP_HOST }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+        run: |
+          lftp -d -c "
+          set ftp:ssl-allow true; # Habilitar FTPS si el servidor lo requiere
+          set ssl:verify-certificate no; # Opcional: deshabilitar verificación de certificado
+          open -u $FTP_USERNAME,$FTP_PASSWORD $FTP_HOST;
+          ls;
+          "
+
+      # Paso 4: Crear el directorio remoto si no existe
+      - name: Ensure remote directory exists
+        env:
+          FTP_HOST: ${{ secrets.FTP_HOST }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+        run: |
+          lftp -d -c "
+          set ftp:ssl-allow true;
+          set ssl:verify-certificate no;
+          open -u $FTP_USERNAME,$FTP_PASSWORD $FTP_HOST;
+          mkdir -p public_html/projectci;
+          "
+
+      # Paso 5: Sincronizar archivos al servidor
+      - name: Deploy files to Hostinger
+        env:
+          FTP_HOST: ${{ secrets.FTP_HOST }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+        run: |
+          lftp -d -c "
+          set ftp:ssl-allow true;
+          set ssl:verify-certificate no;
+          open -u $FTP_USERNAME,$FTP_PASSWORD $FTP_HOST;
+          mirror -R ./ public_html/projectci/;
+          "
